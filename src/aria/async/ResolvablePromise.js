@@ -7,26 +7,23 @@ Aria.classDefinition({
   ],
 
   $dependencies : [
-    'aria.async.Promises',
+    'aria.async.FailedPromise',
+    'aria.async.ResolvedPromise',
     'aria.utils.Array'
   ],
 
   $constructor : function () {
     this.__resolvers = [];
-    this.__isResolved = false;
-    this.__isRejected = false;
   },
 
   $prototype : {
     then : function (fulfill, error) {
-      if (this.__isResolved) {
-        return aria.async.Promises._pipe(this, fulfill, this.__value);
-      } else if (this.__isRejected) {
-        return aria.async.Promises._pipe(this, error, this.__value);
+      if (this.__finished) {
+        return this.__finished.then(fulfill, error);
       } else {
         var down = new aria.async.ResolvablePromise();
         this.__resolvers.push(function () {
-          this.then(fulfill, error).then(function (value) {
+          this.__finished.then(fulfill, error).then(function (value) {
             down._resolve(value);
           }, function (reason) {
             down._reject(reason);
@@ -36,10 +33,10 @@ Aria.classDefinition({
       }
     },
     _resolve : function (value) {
-      this.__resolveOrReject(true, value);
+      this.__resolveOrReject(new aria.async.ResolvedPromise(value));
     },
     _reject : function (reason) {
-      this.__resolveOrReject(false, reason);
+      this.__resolveOrReject(new aria.async.FailedPromise(value));
     },
     _progress : function (data) {
       this.__ensureAvailable();
@@ -49,14 +46,9 @@ Aria.classDefinition({
         data: data
       });
     },
-    __resolveOrReject : function (resolve, value) {
+    __resolveOrReject : function (finished) {
       this.__ensureAvailable();
-      if (resolve) {
-        this.__isResolved = true;
-      } else {
-        this.__isRejected = true;
-      }
-      this.__value = reason;
+      this.__finished = finished;
       this.$unregisterListeners();
       aria.utils.Array.forEach(this.__resolvers, function (resolver) {
         resolver();
@@ -64,7 +56,7 @@ Aria.classDefinition({
       this.__resolvers = null;
     },
     __ensureAvailable : function () {
-      if (this.__isResolved || this.__isRejected) {
+      if (this.__finished) {
         throw new Error('Promise is already resolved or rejected');
       }
     }
