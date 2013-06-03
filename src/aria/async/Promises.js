@@ -106,7 +106,11 @@ Aria.classDefinition({
     },
     _pipe : function (promise, callback, value) {
       if (aria.utils.Type.isCallback(callback)) {
-        return aria.utils.Promises.when(this.$callback(callback, value));
+        try {
+          return aria.async.Promises.when(this.$callback(callback, value));
+        } catch (e) {
+          return new aria.async.FailedPromise(e);
+        }
       } else {
         return promise;
       }
