@@ -5,6 +5,7 @@ Aria.classDefinition({
   $dependencies : [
     'aria.async.SimpleDeferred',
     'aria.async.ResolvedPromise',
+    'aria.async.FailedPromise',
     'aria.utils.Type',
     'aria.utils.Array'
   ],
@@ -21,6 +22,9 @@ Aria.classDefinition({
       } else {
         return new aria.async.ResolvedPromise(value);
       }
+    },
+    fail : function (reason) {
+      return new aria.async.FailedPromise(reason);
     },
     always : function (promise, cb) {
       aria.async.Promises.when(promise).then(function (value) {
